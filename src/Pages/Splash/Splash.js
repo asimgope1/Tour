@@ -27,7 +27,7 @@ const Splash = ({ navigation }) => {
 
     // Navigate to Login screen after the animation
     const timer = setTimeout(() => {
-      // navigation.navigate('Login');
+      navigation.navigate('Login');
     }, 2000); // Ensure this is longer than the animation
 
     return () => clearTimeout(timer); // Cleanup timer on unmount
@@ -53,7 +53,7 @@ const Splash = ({ navigation }) => {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: 'rgba(255, 255, 255, 0.6)',
+              // backgroundColor: 'rgba(255, 255, 255, 0.6)',
               alignItems: 'center',
               alignSelf: 'center'
             }}
@@ -65,8 +65,10 @@ const Splash = ({ navigation }) => {
               resizeMode={'contain'}
               style={{
                 position: 'absolute', // Make sure the image is positioned absolutely
-                width: WIDTH * 0.6,
-                height: HEIGHT * 0.6,
+                width: WIDTH * 0.68,
+                height: HEIGHT * 0.62,
+                alignSelf: 'center',
+                alignItems: 'center',
                 transform: [{ translateY: chakraAnim }], // Add animation if required
               }}
             />
@@ -75,9 +77,12 @@ const Splash = ({ navigation }) => {
             <Animated.Image
               source={NEWLOGO}
               style={{
-                width: WIDTH * 0.7,
+                width: WIDTH * 0.78,
                 height: HEIGHT * 0.42,
+                marginLeft: 5,
                 resizeMode: 'contain',
+                alignSelf: 'center',
+                alignItems: 'center',
                 position: 'absolute', // Ensure this stays on top
                 transform: [{ translateY: nameAnim }], // Add animation for the logo
               }}

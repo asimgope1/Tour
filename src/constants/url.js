@@ -1,1 +1,1 @@
-export const BASE_URL = 'https://zthbackend.pythonanywhere.com/';
+export const BASE_URL = 'https://protimes.co.in/shreedham/';

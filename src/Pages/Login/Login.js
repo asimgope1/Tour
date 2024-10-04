@@ -1,178 +1,238 @@
-import { View, Text, SafeAreaView, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import React, { Fragment } from 'react';
-import { RFValue } from 'react-native-responsive-fontsize';
-import { EXTRABOLD, LIGHT } from '../../constants/fontfamily';
-import { MyStatusBar } from '../../constants/config';
-import { BRAND, WHITE, DARK_GRAY, LIGHT_GRAY, BLACK } from '../../constants/color';
-import { splashStyles } from '../Splash/SplashStyles';
+import { View, Text, SafeAreaView, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Animated, StatusBar, ImageBackground, Alert } from 'react-native';
+import React, { Fragment, useRef, useEffect, useState } from 'react';
 import LinearGradient from 'react-native-linear-gradient';
+import { useDispatch } from 'react-redux';
 import { storeObjByKey } from '../../utils/Storage';
 import { checkuserToken } from '../../redux/actions/auth';
-import { useDispatch } from 'react-redux';
+import { BLACK, BRAND, WHITE } from '../../constants/color';
+import { RING, NEWLOGO, LOGO } from '../../constants/imagepath';
+import { HEIGHT, WIDTH } from '../../constants/config';
+import { BASE_URL } from '../../constants/url';
 
 const Login = () => {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
+
+  // State to capture user input
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  // Animated values for Chakra and Name images
+  const chakraAnim = useRef(new Animated.Value(-HEIGHT * 0.9)).current;
+  const nameAnim = useRef(new Animated.Value(HEIGHT)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(chakraAnim, {
+        toValue: HEIGHT * 0.18,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(nameAnim, {
+        toValue: HEIGHT * 0.27,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [chakraAnim, nameAnim]);
+
+
+
+  const GetUserDetails = (token) => {
+    try {
+      const myHeaders = new Headers();
+      myHeaders.append("Authorization", `Bearer ${token}`);
+
+      const requestOptions = {
+        method: "GET",
+        headers: myHeaders,
+        redirect: "follow"
+      };
+
+      fetch(`${BASE_URL}api/userdetails`, requestOptions)
+        .then((response) => response.json())
+        .then((result) => {
+          if (result.Code === "200") {
+
+            console.log("GetUserDetails", result)
+            storeObjByKey('userDetails', result);
+          }
+          else {
+            Alert.alert("Error", "Failed to fetch user details.");
+          }
+
+        })
+        .catch((error) => console.error(error));
+
+    }
+    catch {
+      Alert.alert("Error", "Failed to fetch user details.");
+
+    }
+  }
+
+  // Function to handle login
+  const handleLogin = () => {
+    const myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+
+    const raw = JSON.stringify({
+      userid: email,
+      password: password,
+    });
+    console.log('raw', raw)
+
+    const requestOptions = {
+      method: "POST",
+      headers: myHeaders,
+      body: raw,
+      redirect: "follow",
+    };
+
+    fetch(`${BASE_URL}api/login`, requestOptions)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json(); // Continue if response is okay
+      })
+      .then((result) => {
+        console.log("object", result)
+        if (result.status === "success" && result.Code === "200") {
+          storeObjByKey('loginResponse', result);
+          dispatch(checkuserToken());
+          GetUserDetails(result?.token)
+          Alert.alert("Login Success", result.msg);
+        } else {
+          Alert.alert("Login Failed", result.msg || "Invalid credentials.");
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        Alert.alert("Error", error.message || "Something went wrong. Please try again.");
+      });
+
+  };
+
   return (
     <Fragment>
-      <MyStatusBar backgroundColor={BRAND} barStyle={'light-content'} />
-      <SafeAreaView style={splashStyles.maincontainer}>
-
-        {/* KeyboardAvoidingView handles keyboard pop-up on input */}
-        <KeyboardAvoidingView
+      <SafeAreaView style={styles.container}>
+        <ImageBackground
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          source={LOGO}
         >
-          {/* ScrollView ensures scrollability on smaller screens */}
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Linear Gradient Header */}
-            {/* Linear Gradient Header */}
-            <LinearGradient
-              start={{ x: 0, y: 0 }} // Start gradient from the top
-              end={{ x: 0, y: 1 }}   // End gradient at the bottom
-              colors={['#5C6BC0', BRAND]} // Use more subtle gradient colors for better contrast
-              style={styles.headerContainer}
-            >
-              <View style={styles.headerContent}>
-                <Text style={styles.headerText}>Welcome Back!</Text>
-                <Text style={styles.subHeaderText}>Login to continue</Text>
-              </View>
-            </LinearGradient>
+          <StatusBar barStyle={'light-content'} />
 
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+            <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+              {/* Header Section with Animated Images */}
+              <LinearGradient colors={[BRAND, BRAND]} style={styles.headerContainer}>
+                <View style={{ position: 'absolute', width: '100%', height: '100%' }}>
+                  {/* Animated Chakra Image */}
+                  <Text style={styles.headerText}>Welcome Back!</Text>
+                  <Text style={styles.subHeaderText}>Login to continue</Text>
+                  <Animated.Image
+                    source={RING}
+                    resizeMode={'contain'}
+                    style={{
+                      position: 'absolute',
+                      width: WIDTH * 0.68,
+                      height: HEIGHT * 0.62,
+                      alignSelf: 'center',
+                      transform: [{ translateY: chakraAnim }],
+                    }}
+                  />
 
-            {/* Content Section */}
-            <View style={styles.contentContainer}>
+                  {/* Foreground Logo Image */}
+                  <Animated.Image
+                    source={NEWLOGO}
+                    style={{
+                      width: WIDTH * 0.78,
+                      height: HEIGHT * 0.42,
+                      marginLeft: 5,
+                      resizeMode: 'contain',
+                      alignSelf: 'center',
+                      position: 'absolute',
+                      transform: [{ translateY: nameAnim }],
+                    }}
+                  />
+                </View>
+              </LinearGradient>
+
+              {/* Content Section */}
               <View style={styles.loginBox}>
-                <Text style={styles.titleText}>Login to your account</Text>
-                {/* <TextInput
+                <TextInput
                   style={styles.inputField}
-                  placeholder="Email"
-                  placeholderTextColor={DARK_GRAY}
+                  placeholder="Id"
+                  placeholderTextColor="#666"
+                  value={email}
+                  onChangeText={setEmail}
                 />
                 <TextInput
                   style={styles.inputField}
                   placeholder="Password"
-                  placeholderTextColor={DARK_GRAY}
+
+                  placeholderTextColor="#666"
                   secureTextEntry={true}
-                /> */}
+                  value={password}
+                  onChangeText={setPassword}
+                />
 
-                <TouchableOpacity
-                  onPress={() => {
-                    const h = 1
-                    storeObjByKey('loginResponse', h)
-                    dispatch(checkuserToken(true))
-
-
-
-                  }}
-                  style={styles.loginButton}>
-                  <LinearGradient
-                    colors={['#4CAF50', '#81C784']} // Green gradient for the button
-                    style={styles.loginButtonGradient}>
+                <TouchableOpacity onPress={handleLogin} style={styles.loginButton}>
+                  <LinearGradient colors={['#4CAF50', '#81C784']} style={styles.loginButtonGradient}>
                     <Text style={styles.loginButtonText}>Login</Text>
                   </LinearGradient>
                 </TouchableOpacity>
-
-                <Text style={styles.footerText}>Don't have an account? Sign Up</Text>
               </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </ImageBackground>
       </SafeAreaView>
     </Fragment>
   );
 };
 
 const styles = {
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   headerContainer: {
-    width: '100%',
-    paddingVertical: 60, // Increased padding for better spacing
+    paddingVertical: 60,
     justifyContent: 'center',
     alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    marginBottom: 20,
-    shadowColor: BLACK, // Adding shadow for depth
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10, // For Android
-  },
-  headerContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerText: {
-    color: WHITE,
-    fontSize: RFValue(28), // Slightly larger font
-    fontFamily: EXTRABOLD,
-    textAlign: 'center',
-  },
-  subHeaderText: {
-    color: LIGHT_GRAY, // Subtle secondary text
-    fontSize: RFValue(14),
-    fontFamily: LIGHT,
-    marginTop: 5,
-  },
-  contentContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: WHITE,
   },
   loginBox: {
-    backgroundColor: WHITE,
-    width: '85%',
-    borderRadius: 20,
+    flex: 1,
     padding: 20,
-    shadowColor: BLACK,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
     alignItems: 'center',
-  },
-  titleText: {
-    fontSize: RFValue(20),
-    fontFamily: EXTRABOLD,
-    color: BRAND,
-    marginBottom: 20,
   },
   inputField: {
     width: '100%',
+    padding: 12,
+    borderColor: '#ccc',
     borderWidth: 1,
-    borderColor: LIGHT_GRAY,
     borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
     marginBottom: 15,
-    fontSize: RFValue(14),
-    color: DARK_GRAY,
-    fontFamily: LIGHT,
+    fontSize: 16,
+    backgroundColor: '#F9F9F9',
+    color: BLACK
   },
   loginButton: {
     width: '100%',
-    borderRadius: 10,
     marginTop: 10,
   },
   loginButtonGradient: {
-    paddingVertical: 15,
+    padding: 15,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 10,
   },
   loginButtonText: {
-    color: WHITE,
-    fontSize: RFValue(16),
-    fontFamily: EXTRABOLD,
-  },
-  footerText: {
-    marginTop: 20,
-    fontSize: RFValue(14),
-    fontFamily: LIGHT,
-    color: DARK_GRAY,
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 };
 

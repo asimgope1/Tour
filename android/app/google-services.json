@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1009791291849",
+    "project_id": "shreedhamtourstravels",
+    "storage_bucket": "shreedhamtourstravels.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1009791291849:android:2ba445e089ffe887021818",
+        "android_client_info": {
+          "package_name": "com.tour"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSMdneioFMqjLWkHrq5Er0bCpQj6nbBXE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
