@@ -26,7 +26,25 @@ const Drawer = createDrawerNavigator();
 // Function to handle Sign Out
 
 
-const CustomDrawerContent = ({ userDetails, ...props }) => {
+const CustomDrawerContent = ({ ...props }) => {
+  const [userDetails, setUserDetails] = useState({}); // State to hold user details
+
+  useEffect(() => {
+    const GetUserDetails = async () => {
+      const response = await getObjByKey("userDetails");
+      if (response?.data_value?.length) {
+        setUserDetails(response?.data_value[0]); // Assuming data_value is an array
+      }
+      console.log('User Details:', response);
+    };
+
+    setTimeout(() => {
+      // Update your data source
+      GetUserDetails();
+    }, 500);
+
+
+  }, []);
   const dispatch = useDispatch();
   const [token, setToken] = useState()
   const handleSignOut = async (navigation, dispatch) => {
@@ -128,19 +146,9 @@ const CustomDrawerContent = ({ userDetails, ...props }) => {
 // Define the Bottom Tab Navigator with Icons
 const MyTabs = () => {
   const dispatch = useDispatch();
-  const [userDetails, setUserDetails] = useState({}); // State to hold user details
 
-  useEffect(() => {
-    const GetUserDetails = async () => {
-      const response = await getObjByKey("userDetails");
-      if (response?.data_value?.length) {
-        setUserDetails(response?.data_value[0]); // Assuming data_value is an array
-      }
-      console.log('User Details:', response);
-    };
 
-    GetUserDetails();
-  }, []);
+
 
   return (
     <Tab.Navigator
