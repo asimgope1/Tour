@@ -3,7 +3,8 @@ import { WHITE } from '../../constants/color';
 import { HEIGHT, WIDTH } from '../../constants/config';
 export const splashStyles = StyleSheet.create({
   maincontainer: {
-    height: '100%',
+    // height: '100%',
+    flex: 1,
     width: '100%',
     backgroundColor: WHITE,
   },

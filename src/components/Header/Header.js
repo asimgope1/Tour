@@ -17,12 +17,12 @@ const Header = ({ title, onMenuPress, onAddPress }) => {
     >
       <View style={styles.headerContent}>
         {/* Menu Icon */}
-        <TouchableOpacity onPress={onMenuPress}>
+        {onMenuPress ? <TouchableOpacity onPress={onMenuPress}>
           <Image
             style={styles.icon}
             source={MENU}
           />
-        </TouchableOpacity>
+        </TouchableOpacity> : <></>}
 
         {/* Title */}
         <Text style={styles.headerText}>
@@ -30,12 +30,12 @@ const Header = ({ title, onMenuPress, onAddPress }) => {
         </Text>
 
         {/* Add Icon */}
-        <TouchableOpacity onPress={onAddPress}>
+        {onAddPress ? <TouchableOpacity onPress={onAddPress}>
           <Image
             style={styles.iconSmall}
             source={PLUS}
           />
-        </TouchableOpacity>
+        </TouchableOpacity> : <></>}
       </View>
     </LinearGradient>
   )

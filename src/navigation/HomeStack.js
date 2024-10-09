@@ -12,6 +12,7 @@ import { checkuserToken } from '../redux/actions/auth';
 import { useDispatch } from 'react-redux';
 import { RFValue } from 'react-native-responsive-fontsize';
 import { BOLD, EXTRABOLD } from '../constants/fontfamily';
+import { BASE_URL } from '../constants/url';
 
 // Native Stack Navigator
 const Stack = createNativeStackNavigator();
@@ -23,14 +24,63 @@ const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
 // Function to handle Sign Out
-const handleSignOut = async (navigation, dispatch) => {
-  clearAll();
-  dispatch(checkuserToken(false));
-  // Add your logout API call here if needed
-};
+
 
 const CustomDrawerContent = ({ userDetails, ...props }) => {
   const dispatch = useDispatch();
+  const [token, setToken] = useState()
+  const handleSignOut = async (navigation, dispatch) => {
+    LogoutApi();
+    clearAll();
+    dispatch(checkuserToken(false));
+    // Add your logout API call here if needed
+
+
+  };
+
+
+  useEffect(() => {
+    RetrieveDetails();
+  }, []);
+
+  const RetrieveDetails = async () => {
+    try {
+      const loginResponse = await getObjByKey('loginResponse');
+      console.log('tokennnnnnnntttt', loginResponse.token)
+      setToken(loginResponse.token)
+
+    } catch {
+      console.log("Error retrieving loginResponse");
+    }
+  }
+
+
+
+  const LogoutApi = async () => {
+
+
+    try {
+      const myHeaders = new Headers();
+      myHeaders.append("Authorization", `Bearer ${token}`);
+
+      const raw = "";
+
+      const requestOptions = {
+        method: "POST",
+        headers: myHeaders,
+        body: raw,
+        redirect: "follow"
+      };
+
+      fetch(`${BASE_URL}api/logout`, requestOptions)
+        .then((response) => response.json())
+        .then((result) => console.log(result))
+        .catch((error) => console.error(error));
+    }
+    catch {
+
+    }
+  }
 
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={{ flex: 1 }}>
@@ -38,10 +88,7 @@ const CustomDrawerContent = ({ userDetails, ...props }) => {
       <LinearGradient colors={['#6a11cb', '#2575fc']} style={styles.drawerHeader}>
         <TouchableOpacity onPress={() => alert('Profile clicked')}>
           <View style={styles.profileSection}>
-            <Image
-              source={{ uri: 'https://example.com/profile-pic.jpg' }} // Update with the actual image URL
-              style={styles.profileImage}
-            />
+
             <View style={styles.profileText}>
               <Text style={styles.profileName}>{userDetails.UserName}</Text>
               <Text style={styles.profileEmail}>{userDetails.UserDesignation}</Text>
@@ -59,7 +106,7 @@ const CustomDrawerContent = ({ userDetails, ...props }) => {
           onPress={() => props.navigation.navigate('HomeTabs')}
         />
         <DrawerItem
-          label="Settings"
+          label="History"
           icon={({ color, size }) => <Icon name="toolbox" size={size} color={color} />}
           labelStyle={styles.drawerItemLabel}
           onPress={() => props.navigation.navigate('Settings')}
@@ -87,7 +134,7 @@ const MyTabs = () => {
     const GetUserDetails = async () => {
       const response = await getObjByKey("userDetails");
       if (response?.data_value?.length) {
-        setUserDetails(response.data_value[0]); // Assuming data_value is an array
+        setUserDetails(response?.data_value[0]); // Assuming data_value is an array
       }
       console.log('User Details:', response);
     };
@@ -118,7 +165,7 @@ const MyTabs = () => {
       })}
     >
       <Tab.Screen name="Home" component={Home} options={{ headerShown: false, tabBarLabel: 'Home' }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: 'Settings' }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: 'History', headerShown: false }} />
     </Tab.Navigator>
   );
 };
@@ -131,8 +178,8 @@ const MyDrawer = ({ userDetails }) => { // Accept userDetails as a prop
       screenOptions={{
         drawerStyle: {
           backgroundColor: '#f9f9f9', // Customize drawer background
-          borderRadius: 10,           // Add rounded edges
-          marginTop: 20,              // Adjust positioning
+          // borderRadius: 10,           // Add rounded edges
+          marginTop: -5,              // Adjust positioning
         },
         headerShown: false, // Hide header to avoid conflicts with drawer header
       }}

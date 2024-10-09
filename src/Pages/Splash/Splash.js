@@ -1,11 +1,75 @@
-import { View, Image, SafeAreaView, ImageBackground, Animated } from 'react-native';
+import { View, Image, SafeAreaView, ImageBackground, Animated, Platform, PermissionsAndroid } from 'react-native';
 import React, { Fragment, useEffect, useRef } from 'react';
 import { BRAND, WHITE } from '../../constants/color';
 import { CHAKRA, LOGO, LOGOZZ, NAME, NEWLOGO, RING } from '../../constants/imagepath';
 import { HEIGHT, MyStatusBar, WIDTH } from '../../constants/config';
 import { splashStyles } from './SplashStyles';
+import Geolocation from '@react-native-community/geolocation';
 
 const Splash = ({ navigation }) => {
+  useEffect(() => {
+    requestLocationPermission();
+    NotificationPermission()
+  }, []);
+
+  const NotificationPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+        );
+      } catch (error) {
+      }
+    }
+  }
+  const requestLocationPermission = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        const locationGranted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'ProTime Location Permission',
+            message:
+              'ProTime needs access to your location to provide attendance tracking. Your location data will only be used for this purpose and will not be shared with third parties. Tap "Allow" to grant permission or "Deny" to decline.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        if (locationGranted === PermissionsAndroid.RESULTS.GRANTED) {
+          console.log('Location permission granted');
+          getCurrentLocation();
+        } else {
+          console.log('Location permission denied');
+        }
+      } else {
+        // For iOS, no need to request permissions manually, it's done automatically
+        getCurrentLocation();
+      }
+    } catch (error) {
+      console.warn(error);
+    }
+  };
+
+  const getCurrentLocation = () => {
+    Geolocation.getCurrentPosition(
+      position => {
+        const { latitude, longitude } = position.coords;
+        console.log('Latitude:', latitude);
+        console.log('Longitude:', longitude);
+
+        // Call the reverse geocode API
+      },
+      error => {
+        console.error('Error getting location:', error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 10000,
+      },
+    );
+  };
   // Animated values for Chakra and Name images
   const chakraAnim = useRef(new Animated.Value(-HEIGHT * 0.9)).current; // Start off-screen from the top
   const nameAnim = useRef(new Animated.Value(HEIGHT)).current; // Start off-screen from the bottom
@@ -14,7 +78,7 @@ const Splash = ({ navigation }) => {
     // Animation for both images coming into view
     Animated.parallel([
       Animated.timing(chakraAnim, {
-        toValue: HEIGHT * 0.18, // Target position for Chakra image
+        toValue: HEIGHT * 0.13, // Target position for Chakra image
         duration: 1000, // Duration for the animation
         useNativeDriver: true,
       }),
@@ -65,8 +129,8 @@ const Splash = ({ navigation }) => {
               resizeMode={'contain'}
               style={{
                 position: 'absolute', // Make sure the image is positioned absolutely
-                width: WIDTH * 0.68,
-                height: HEIGHT * 0.62,
+                width: WIDTH * 0.72,
+                height: HEIGHT * 0.7,
                 alignSelf: 'center',
                 alignItems: 'center',
                 transform: [{ translateY: chakraAnim }], // Add animation if required
@@ -77,8 +141,8 @@ const Splash = ({ navigation }) => {
             <Animated.Image
               source={NEWLOGO}
               style={{
-                width: WIDTH * 0.78,
-                height: HEIGHT * 0.42,
+                width: WIDTH * 0.6,
+                height: HEIGHT * 0.4,
                 marginLeft: 5,
                 resizeMode: 'contain',
                 alignSelf: 'center',
