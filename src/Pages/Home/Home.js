@@ -22,12 +22,17 @@ import LinearGradient from 'react-native-linear-gradient';
 import { BOLD, EXTRABOLD, REGULAR, SEMIBOLD } from '../../constants/fontfamily';
 import { RFValue } from 'react-native-responsive-fontsize';
 import Header from '../../components/Header';
-import { getObjByKey, storeObjByKey } from '../../utils/Storage';
+import { clearAll, getObjByKey, storeObjByKey } from '../../utils/Storage';
 import { BASE_URL } from '../../constants/url';
 import moment from 'moment';
 import Geolocation from '@react-native-community/geolocation';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { Loader } from '../../components/Loader';
+import { useDispatch } from 'react-redux';
+import DropDownPicker from 'react-native-dropdown-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { checkuserToken } from '../../redux/actions/auth';
+import Add from './Add';
 
 const Home = ({ navigation }) => {
     const [Dashboard, setDashBoard] = useState({
@@ -54,6 +59,86 @@ const Home = ({ navigation }) => {
     const [type, SetType] = useState('');
     const [loader, setLoader] = useState(false);
     const [adminData, setAdminData] = useState();
+    const dispatch = useDispatch();
+    const [confirmItem, setConfirmItem] = useState({});
+    const [bookDate, setBookDate] = useState(moment(fromDate).format('YYYY/MM/DD HH:mm'));
+    const [adults, setAdults] = useState('');
+    const [child, setChild] = useState('');
+    const [pickupPoints, setPickupPoints] = useState('');
+    const [customerName, setCustomerName] = useState('');
+    const [mobileNo, setMobileNo] = useState('');
+    const [tourSl, setTourSl] = useState('1');
+    const [status, setStatus] = useState('Confirmed');
+    const [amount, setAmount] = useState('3500');
+    const [paid, setPaid] = useState('1000');
+    const [Sl, setSl] = useState('');
+    const [Tour, setTour] = useState(null);
+    const [TourOpen, setTourOpen] = useState(false);
+    const [Tours, setTours] = useState([
+
+    ]);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [fromDate, setFromDate] = useState(new Date()); // Initialize as Date object
+
+    const [addModal, setAddModal] = useState(false); // State to control modal visibility
+
+    const handleOpenModal = () => {
+        setAddModal(true); // Open the modal
+    };
+
+
+    const GetTourPackage = () => {
+        try {
+            const myHeaders = new Headers();
+            myHeaders.append("Authorization", `Bearer ${token}`);
+
+            const requestOptions = {
+                method: "GET",
+                headers: myHeaders,
+                redirect: "follow",
+            };
+
+            fetch(`${BASE_URL}api/tourlist`, requestOptions)
+                .then((response) => response.json())
+                .then((result) => {
+                    // Log the result to verify response
+                    console.log('tourlist', result);
+
+                    // Map the result to populate dropdown items
+                    const toursData = result.data_value.map((tour) => ({
+                        label: tour.TourName,   // Label to show in the dropdown
+                        value: tour.TourSl,     // Value to use when selected
+                    }));
+
+                    // Set the transformed data into the Tours state
+                    setTours(toursData);
+                })
+                .catch((error) => console.error('Error fetching tour list:', error));
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
+
+
+
+    useEffect(() => {
+        if (confirmItem) {
+
+            setBookDate(moment(fromDate).format('YYYY/MM/DD HH:mm'));
+            setAdults(confirmItem?.Adults);
+            setChild(confirmItem?.Child);
+            setPickupPoints(confirmItem?.PickupPoints);
+            setCustomerName(confirmItem?.CustumerName);
+            setMobileNo(confirmItem?.MobileNo);
+            setSl(confirmItem?.Sl);
+            // setTourSl('1');
+            setStatus('Confirmed');
+            setAmount('3500');
+            setPaid('1000');
+            GetTourPackage()
+        }
+    }, [confirmItem])
+
 
     const handleOtpChange = (text, index) => {
         // Handle OTP change in each box
@@ -122,6 +207,8 @@ const Home = ({ navigation }) => {
             setToken(loginResponse.token);
             GetAdminData(loginResponse.token);
         } catch {
+            // clearAll();
+            // dispatch(checkuserToken(false));
             console.log('Error retrieving loginResponse');
         }
     };
@@ -172,7 +259,11 @@ const Home = ({ navigation }) => {
                         console.log('Dashboard Data: ', result);
                         setDashBoard(result);
                     })
-                    .catch(error => console.error(error));
+                    .catch(error => {
+                        // clearAll();
+                        // dispatch(checkuserToken(false));
+                        console.error(error)
+                    });
             }
             else {
 
@@ -185,7 +276,12 @@ const Home = ({ navigation }) => {
                         console.log('Dashboard Data: ', result);
                         setDashBoard(result);
                     })
-                    .catch(error => console.error(error));
+                    .catch(error => {
+
+                        // clearAll();
+                        // dispatch(checkuserToken(false));
+                        console.error(error)
+                    });
             }
 
 
@@ -254,7 +350,7 @@ const Home = ({ navigation }) => {
     // Function to render each item in the FlatList
     const GetType = async () => {
         const Type = await getObjByKey('userDetails');
-        console.log('type', Type.data_value[0].UserType);
+        console.log('type', Type?.data_value[0]?.UserType);
         SetType(Type?.data_value[0]?.UserType);
     };
 
@@ -423,23 +519,27 @@ const Home = ({ navigation }) => {
     };
 
     const confirm = () => {
+        console.log('sl', Sl)
         try {
             const myHeaders = new Headers();
             myHeaders.append("Content-Type", "application/json");
             myHeaders.append("Authorization", `Bearer ${token}`);
 
             const raw = JSON.stringify({
-                "BookDate": "2024-09-30 15:53",
-                "Adults": "3",
-                "Child": "2",
-                "PickupPoints": "Jaganath Mandir",
-                "CustumerName": "Saswat Panda",
-                "MobileNo": "8093957601",
-                "TourSl": "1",
-                "status": "Confirmed",
-                "amount": "3500",
-                "paid": "1000"
+                "BookDate": bookDate,
+                "Adults": adults,
+                "Child": child,
+                "PickupPoints": pickupPoints,
+                "CustumerName": customerName,
+                "MobileNo": mobileNo,
+                "TourSl": tourSl,
+                "status": status,
+                "amount": amount,
+                "paid": paid
             });
+            console.log('raw', raw)
+
+
 
             const requestOptions = {
                 method: "POST",
@@ -448,16 +548,35 @@ const Home = ({ navigation }) => {
                 redirect: "follow"
             };
 
-            fetch("https://protimes.co.in/shreedham/api/confirmtourbooking/2", requestOptions)
-                .then((response) => response.text())
-                .then((result) => console.log(result))
+            fetch(`${BASE_URL}api/confirmtourbooking/${Sl}`, requestOptions)
+                .then((response) => response.json())
+                .then((result) => {
+
+                    console.log('confirmtourbooking', result)
+                    setconfirmModal(false)
+                    GetDashBoard(token)
+
+
+                })
                 .catch((error) => console.error(error));
 
-        }
-        catch {
+        } catch {
             console.log('Error starting tour');
         }
     }
+
+
+
+    const handleFromDateChange = (event, selectedDate) => {
+        // If the event type is set to 'dismissed', close the picker
+        if (event.type === 'dismissed') {
+            setShowDatePicker(false);
+            return;
+        }
+        const currentDate = selectedDate || fromDate;
+        setShowDatePicker(false);
+        setFromDate(currentDate);
+    };
 
     const Data = [
 
@@ -551,7 +670,14 @@ const Home = ({ navigation }) => {
                                 ...styles.stopButton,
                                 backgroundColor: todayDate === selectedDate ? 'green' : 'grey',
                             }}
-                            onPress={() => setconfirmModal(true)}
+                            onPress={() => {
+                                setconfirmModal(true)
+                                setConfirmItem(item)
+                            }
+
+
+
+                            }
                         >
                             <Text style={styles.startButtonText}>Confirm</Text>
                         </TouchableOpacity>
@@ -590,12 +716,17 @@ const Home = ({ navigation }) => {
                     // setLoader(false)
                     console.log('GetAdminData', result);
                     setAdminData(result);
+
                 })
                 .catch(error => console.error(error));
         } catch {
             console.log('Error fetching data');
         }
     };
+
+
+
+    console.log('confirmItem', adults)
 
     return (
         <Fragment>
@@ -696,6 +827,8 @@ const Home = ({ navigation }) => {
 
 
                                                 <TouchableOpacity
+
+                                                    onPress={handleOpenModal}
                                                     style={{
                                                         marginLeft: 25,
                                                         height: 50,
@@ -908,23 +1041,165 @@ const Home = ({ navigation }) => {
                 animationType="slide"
                 transparent={false}
                 visible={confirmModal}
-                onRequestClose={() => setconfirmModal(false)}>
+                onRequestClose={() => setconfirmModal(false)}
+            >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>Details</Text>
+                        <Text style={styles.modalTitle}>
+                            {customerName}'s
+                        </Text>
+
+                        {/* Book Date */}
+                        <Text style={styles.label}>Booking Date:{moment(fromDate).format('YYYY-MM-DD HH:mm')}</Text>
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={fromDate}
+                                mode="date"
+                                display="default"
+                                onChange={handleFromDateChange}
+                            />
+                        )}
+
+                        {/* Pickup Points */}
+                        <Text style={styles.label}>Pickup Points</Text>
+                        <TextInput
+                            style={{
+                                height: 40,
+                                borderColor: 'gray',
+                                borderWidth: 1,
+                                borderRadius: 5,
+                                marginBottom: 10,
+                                fontSize: RFValue(12),
+                                color: 'black',
+                                width: WIDTH * 0.7,
+                                paddingLeft: 10
+
+                            }}
+                            placeholder="Pickup Points"
+                            placeholderTextColor={'grey'}
+                            value={pickupPoints}
+                            onChangeText={setPickupPoints}
+                        />
+
+                        {/* Customer Name and Mobile No */}
+                        <View style={styles.row}>
+                            <View style={styles.column}>
+                                <Text style={styles.label}>Customer Name</Text>
+                                <TextInput
+                                    style={styles.halfInput}
+                                    placeholder="Customer Name"
+                                    value={customerName}
+                                    onChangeText={setCustomerName}
+                                />
+                            </View>
+                            <View style={styles.column}>
+                                <Text style={styles.label}>Mobile No</Text>
+                                <TextInput
+                                    style={styles.halfInput}
+                                    placeholder="Mobile No"
+                                    value={mobileNo}
+                                    onChangeText={setMobileNo}
+                                    keyboardType="numeric"
+                                />
+                            </View>
+                        </View>
+
+                        {/* Adults and Child */}
+                        <View style={styles.row}>
+                            <View style={styles.column}>
+                                <Text style={styles.label}>Adults</Text>
+                                <Text
+                                    style={{ ...styles.halfInput, alignItems: 'center', justifyContent: 'center', paddingLeft: 60, padding: 10, color: BLACK }}
+                                // placeholder="Adults"
+                                // value={adults}
+                                // onChangeText={setAdults}
+                                // keyboardType="numeric"
+                                >
+                                    {adults}
+
+                                </Text>
+
+                            </View>
+                            <View style={styles.column}>
+                                <Text style={styles.label}>Child</Text>
+                                <Text
+                                    style={{ ...styles.halfInput, alignItems: 'center', justifyContent: 'center', paddingLeft: 60, padding: 10, color: BLACK }}
+                                // placeholder="Adults"
+                                // value={adults}
+                                // onChangeText={setAdults}
+                                // keyboardType="numeric"
+                                >
+                                    {child}
+
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* TourSl Dropdown */}
 
 
+                        {/* Paid Amount */}
+                        <View style={styles.row}>
 
+                            <View style={styles.column}>
+                                <Text style={styles.label}>Amount</Text>
+                                <TextInput
+                                    style={styles.halfInput}
+                                    placeholder="Amount"
+                                    value={amount}
+                                    onChangeText={setChild}
+                                    keyboardType="numeric"
+                                />
+                            </View>
+                            <View style={styles.column}>
+                                <Text style={styles.label}>Paid Amount</Text>
+                                <TextInput
+                                    style={styles.halfInput}
+                                    placeholder="Paid Amount"
+                                    value={paid}
+                                    onChangeText={setPaid}
+                                    keyboardType="numeric"
+                                />
+                            </View>
 
+                        </View>
 
-                        <TouchableOpacity
-                            style={styles.verifyButton}
-                            onPress={confirm()}>
+                        <Text style={styles.label}>Select Tour</Text>
+                        <DropDownPicker
+                            // searchable={true}
+                            open={TourOpen}
+                            value={Tour}
+                            items={Tours}
+                            setOpen={setTourOpen}
+                            setValue={setTour}
+                            style={styles.input}
+                            dropDownStyle={{ backgroundColor: '#fafafa' }}
+                            // onChangeItem={item => setTourSl(item.value)}
+                            onSelectItem={(item) => {
+                                setTourSl(item.value)
+                            }}
+                        />
+
+                        {/* Verify Button */}
+                        <TouchableOpacity style={styles.verifyButton} onPress={confirm}>
                             <Text style={styles.verifyButtonText}>Verify</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
             </Modal>
+
+
+            {/* <Modal
+                animationType="slide"
+                transparent={true}
+                visible={isModalVisible}
+                onRequestClose={toggleModal}>
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}> */}
+            <Add addModal={addModal} setAddModal={setAddModal} />
+            {/* </View>
+                </View>
+            </Modal> */}
             <Loader visible={loader} />
         </Fragment>
     );
@@ -1098,7 +1373,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: 'rgba(0,0,0,0.5)',
-        padding: 20,
+        // padding: 20,
     },
     modalContent: {
         width: WIDTH * 0.8,
@@ -1140,7 +1415,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'green',
         padding: 10,
         borderRadius: 5,
-        marginTop: 10,
+        marginTop: 20,
         alignItems: 'center',
     },
     verifyButtonText: {
@@ -1157,5 +1432,40 @@ const styles = StyleSheet.create({
     noDataText: {
         fontSize: 18,
         color: 'black',
+    },
+    label: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#555',
+        marginBottom: 8,
+    },
+    input: {
+        height: 40,
+        borderColor: '#ccc',
+        borderWidth: 1,
+        borderRadius: 5,
+        paddingHorizontal: 10,
+        marginBottom: 15,
+        backgroundColor: '#fff',
+        color: BLACK
+    },
+    row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 15,
+    },
+    column: {
+        flex: 1,
+        marginRight: 10, // For spacing between columns
+    },
+    halfInput: {
+        height: 40,
+        borderColor: '#ccc',
+        borderColor: '#ccc',
+        borderWidth: 1,
+        borderRadius: 5,
+        // paddingHorizontal: 10,
+        backgroundColor: '#fff',
+        color: BLACK
     },
 });

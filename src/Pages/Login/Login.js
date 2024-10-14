@@ -2,7 +2,7 @@ import { View, Text, SafeAreaView, TextInput, TouchableOpacity, ScrollView, Keyb
 import React, { Fragment, useRef, useEffect, useState } from 'react';
 import LinearGradient from 'react-native-linear-gradient';
 import { useDispatch } from 'react-redux';
-import { getObjByKey, storeObjByKey } from '../../utils/Storage';
+import { clearAll, getObjByKey, storeObjByKey } from '../../utils/Storage';
 import { checkuserToken } from '../../redux/actions/auth';
 import { BLACK, BRAND, WHITE } from '../../constants/color';
 import { RING, NEWLOGO, LOGO } from '../../constants/imagepath';
@@ -77,7 +77,15 @@ const Login = () => {
             console.log("GetUserDetails", result)
             storeObjByKey('userDetails', result);
           }
+
+          else if (result.Code === 401) {
+            clearAll();
+            dispatch(checkuserToken(false));
+          }
+
           else {
+            clearAll();
+            dispatch(checkuserToken(false));
             Alert.alert("Error", "Failed to fetch user details.");
           }
 
