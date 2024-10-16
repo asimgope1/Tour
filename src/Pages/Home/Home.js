@@ -77,6 +77,10 @@ const Home = ({ navigation }) => {
     const [Tours, setTours] = useState([
 
     ]);
+    const [vehicleGroupOpen, setVehicleGroupOpen] = useState(false);
+    const [vehicleGroup, setVehicleGroup] = useState(null);
+    const [VehicleGroups, setVehicleGroups] = useState([]);
+
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [fromDate, setFromDate] = useState(new Date()); // Initialize as Date object
 
@@ -85,9 +89,10 @@ const Home = ({ navigation }) => {
     const handleOpenModal = () => {
         setAddModal(true); // Open the modal
     };
+    const [vehicleGroupSl, setVehicleGroupSl] = useState()
 
 
-    const GetTourPackage = () => {
+    const GetTourPackage = async (token) => {
         try {
             const myHeaders = new Headers();
             myHeaders.append("Authorization", `Bearer ${token}`);
@@ -98,16 +103,16 @@ const Home = ({ navigation }) => {
                 redirect: "follow",
             };
 
-            fetch(`${BASE_URL}api/tourlist`, requestOptions)
+            await fetch(`${BASE_URL}api/tourlist`, requestOptions)
                 .then((response) => response.json())
                 .then((result) => {
                     // Log the result to verify response
-                    console.log('tourlist', result);
+                    // console.log('tourlist', result);
 
                     // Map the result to populate dropdown items
-                    const toursData = result.data_value.map((tour) => ({
-                        label: tour.TourName,   // Label to show in the dropdown
-                        value: tour.TourSl,     // Value to use when selected
+                    const toursData = result?.data_value?.map((tour) => ({
+                        label: tour?.TourName,   // Label to show in the dropdown
+                        value: tour?.TourSl,     // Value to use when selected
                     }));
 
                     // Set the transformed data into the Tours state
@@ -123,21 +128,64 @@ const Home = ({ navigation }) => {
 
     useEffect(() => {
         if (confirmItem) {
-
+            // Set common fields
             setBookDate(moment(fromDate).format('YYYY/MM/DD HH:mm'));
-            setAdults(confirmItem?.Adults);
-            setChild(confirmItem?.Child);
-            setPickupPoints(confirmItem?.PickupPoints);
-            setCustomerName(confirmItem?.CustumerName);
-            setMobileNo(confirmItem?.MobileNo);
-            setSl(confirmItem?.Sl);
-            // setTourSl('1');
+            setAdults(confirmItem.Adults || 0); // Default to 0 if not provided
+            setChild(confirmItem.Child || 0);
+            setPickupPoints(confirmItem.PickupPoints || '');
+            setCustomerName(confirmItem.CustumerName || '');
+            setMobileNo(confirmItem.MobileNo || '');
+            setSl(confirmItem.BookSl || '');
             setStatus('Confirmed');
-            setAmount('3500');
-            setPaid('1000');
-            GetTourPackage()
+            setAmount(confirmItem.amount || '3500'); // Default to '3500' if not provided
+            setPaid(confirmItem.paid || '1000'); // Default to '1000' if not provided
+
+            // Conditionally set additional fields based on type
+            if (confirmItem.type === "Travels") {
+                setVehicleGroupSl(confirmItem.VehicleGroupSl || '');
+            } else if (confirmItem.type === "Tour") {
+                setTourSl(confirmItem.TourSl || '');
+            }
+
+            // Fetch additional data
+            if (token) {
+
+                GetTourPackage(token);
+                fetchVehicleList(token)
+            }
         }
-    }, [confirmItem])
+    }, [confirmItem]);
+
+    const fetchVehicleList = async (token) => {
+        // console.log('hiiihere')
+        try {
+            const response = await fetch(`${BASE_URL}api/vehiclegrouplist`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                },
+            });
+
+            const text = await response.text()
+            // console.log('Raw response:', text);
+
+            const result = JSON.parse(text);
+            // console.log('Parsed result:', result);
+
+            if (result.status === "success") {
+                const fetchedVehicles = result?.data_value?.map(vehicle => ({
+                    label: vehicle.VehicleGroupName,
+                    value: vehicle.VehicleGroupSl.toString(),
+                }));
+                setVehicleGroups(fetchedVehicles);
+            } else {
+                console.error('Failed to fetch vehicle list:', result.msg);
+            }
+        } catch (error) {
+            console.error('Error fetching vehicle list:', error);
+        }
+    };
+
 
 
     const handleOtpChange = (text, index) => {
@@ -178,6 +226,7 @@ const Home = ({ navigation }) => {
 
             },
             error => {
+                setLoader(false)
                 console.error('Error getting location:', error);
             },
             {
@@ -202,16 +251,36 @@ const Home = ({ navigation }) => {
         try {
             const loginResponse = await getObjByKey('loginResponse');
             setLoader(false);
-            console.log('tokennnnnn', loginResponse.token);
-            GetDashBoard(loginResponse.token, todayDate);
-            setToken(loginResponse.token);
-            GetAdminData(loginResponse.token);
+            // console.log('tokennnnnn', loginResponse.token);
+            if (loginResponse?.token) {
+                await GetDashBoard(loginResponse?.token, todayDate);
+                await GetAdminData(loginResponse?.token);
+                await fetchVehicleList(loginResponse?.token)
+                await GetTourPackage(loginResponse?.token)
+                setToken(loginResponse?.token);
+            }
         } catch {
-            // clearAll();
-            // dispatch(checkuserToken(false));
+            clearAll();
+            dispatch(checkuserToken(false));
             console.log('Error retrieving loginResponse');
         }
     };
+
+
+    useEffect(() => {
+        // console.log('hiii')
+        if (token) {
+
+            setTimeout(() => {
+                GetDashBoard(token);
+                fetchVehicleList(token)
+                GetTourPackage(token)
+            }, 2000)
+
+        }
+    }, [token])
+
+
 
     const onRefresh = useCallback(() => {
         setLoader(true);
@@ -237,8 +306,8 @@ const Home = ({ navigation }) => {
         }
     }, [selectedDate]);
 
-    const GetDashBoard = (token, date) => {
-        console.log('selecteddtate', selectedDate)
+    const GetDashBoard = async (token, date) => {
+        setLoader(true)
         try {
             const myHeaders = new Headers();
             myHeaders.append('Authorization', `Bearer ${token}`);
@@ -250,14 +319,18 @@ const Home = ({ navigation }) => {
             };
 
             if (date) {
-                fetch(
+                await fetch(
                     `${BASE_URL}api/userdashbaorddate/?fromdate=${date}`,
                     requestOptions,
                 )
                     .then(response => response.json())
                     .then(result => {
-                        console.log('Dashboard Data: ', result);
-                        setDashBoard(result);
+                        setLoader(false)
+                        if (result.status === "success") {
+
+                            // console.log('Dashboard Data: ', result);
+                            setDashBoard(result);
+                        }
                     })
                     .catch(error => {
                         // clearAll();
@@ -267,14 +340,18 @@ const Home = ({ navigation }) => {
             }
             else {
 
-                fetch(
+                await fetch(
                     `${BASE_URL}api/userdashbaorddate/?fromdate=${selectedDate}`,
                     requestOptions,
                 )
                     .then(response => response.json())
                     .then(result => {
-                        console.log('Dashboard Data: ', result);
-                        setDashBoard(result);
+                        if (result.status === 'success') {
+
+                            setLoader(false)
+                            // console.log('Dashboard Data: ', result);
+                            setDashBoard(result);
+                        }
                     })
                     .catch(error => {
 
@@ -350,7 +427,6 @@ const Home = ({ navigation }) => {
     // Function to render each item in the FlatList
     const GetType = async () => {
         const Type = await getObjByKey('userDetails');
-        console.log('type', Type?.data_value[0]?.UserType);
         SetType(Type?.data_value[0]?.UserType);
     };
 
@@ -362,6 +438,7 @@ const Home = ({ navigation }) => {
 
     const handleStart = (id, type) => {
         // console.log('id', id, type)
+        setLoader(true)
         const OTP = otp.join('');
 
         if (type === 'Tour')
@@ -387,6 +464,7 @@ const Home = ({ navigation }) => {
                 fetch(`${BASE_URL}api/starttour/${id}`, requestOptions)
                     .then(response => response.json())
                     .then(result => {
+                        setLoader(false)
                         // console.log('handleStart', result)
                         if (result.Code) {
                             Alert.alert('Success', result.msg);
@@ -399,6 +477,7 @@ const Home = ({ navigation }) => {
                 console.log('Error starting tour');
             }
         else if (type === 'Travels') {
+            setLoader(true)
             try {
                 const myHeaders = new Headers();
                 myHeaders.append('Content-Type', 'application/json');
@@ -425,6 +504,7 @@ const Home = ({ navigation }) => {
                 fetch(`${BASE_URL}api/starttravel/${id}`, requestOptions)
                     .then(response => response.json())
                     .then(result => {
+                        setLoader(false)
                         // console.log('handleStart', result)
                         if (result.Code) {
                             Alert.alert('Success', result.msg);
@@ -446,6 +526,7 @@ const Home = ({ navigation }) => {
     const handleStop = (id, type) => {
         // console.log('id', id)
         const OTP = otp.join('');
+        setLoader(true)
 
         if (type === 'Tour')
             try {
@@ -470,6 +551,7 @@ const Home = ({ navigation }) => {
                 fetch(`${BASE_URL}api/stoptour/${id}`, requestOptions)
                     .then(response => response.json())
                     .then(result => {
+                        setLoader(false)
                         // console.log('handleStart', result)
                         if (result.Code) {
                             Alert.alert('Success', result.msg);
@@ -482,6 +564,7 @@ const Home = ({ navigation }) => {
                 console.log('Error starting tour');
             }
         else if (type === 'Travels') {
+            setLoader(true)
             try {
                 const myHeaders = new Headers();
                 myHeaders.append('Content-Type', 'application/json');
@@ -504,6 +587,7 @@ const Home = ({ navigation }) => {
                 fetch(`${BASE_URL}api/stoptravel/${id}`, requestOptions)
                     .then(response => response.json())
                     .then(result => {
+                        setLoader(false)
                         // console.log('handleStart', result)
                         if (result.Code) {
                             Alert.alert('Success', result.msg);
@@ -519,12 +603,14 @@ const Home = ({ navigation }) => {
     };
 
     const confirm = () => {
-        console.log('sl', Sl)
+        console.log('book', Sl)
+        setLoader(true)
         try {
             const myHeaders = new Headers();
             myHeaders.append("Content-Type", "application/json");
             myHeaders.append("Authorization", `Bearer ${token}`);
 
+            // Prepare the request body
             const raw = JSON.stringify({
                 "BookDate": bookDate,
                 "Adults": adults,
@@ -532,13 +618,11 @@ const Home = ({ navigation }) => {
                 "PickupPoints": pickupPoints,
                 "CustumerName": customerName,
                 "MobileNo": mobileNo,
-                "TourSl": tourSl,
                 "status": status,
                 "amount": amount,
-                "paid": paid
+                "paid": paid,
+                ...(confirmItem.type === "Travels" ? { "VehicleGroupSl": vehicleGroup } : { "TourSl": tourSl }) // Conditionally add fields
             });
-            console.log('raw', raw)
-
 
 
             const requestOptions = {
@@ -548,22 +632,28 @@ const Home = ({ navigation }) => {
                 redirect: "follow"
             };
 
-            fetch(`${BASE_URL}api/confirmtourbooking/${Sl}`, requestOptions)
+            // Determine the API endpoint based on the type
+            const apiUrl = confirmItem.type === "Travels"
+                ? `${BASE_URL}api/confirmtravelbooking/${Sl}`
+                : `${BASE_URL}api/confirmtourbooking/${Sl}`;
+
+            // Call the appropriate API
+            fetch(apiUrl, requestOptions)
                 .then((response) => response.json())
                 .then((result) => {
-
-                    console.log('confirmtourbooking', result)
-                    setconfirmModal(false)
-                    GetDashBoard(token)
-
+                    setLoader(false)
+                    // console.log('confirmBooking', result);
+                    alert(result.msg)
+                    setconfirmModal(false);
+                    GetDashBoard(token);
 
                 })
                 .catch((error) => console.error(error));
 
-        } catch {
-            console.log('Error starting tour');
+        } catch (error) {
+            console.log('Error starting booking:', error);
         }
-    }
+    };
 
 
 
@@ -604,7 +694,8 @@ const Home = ({ navigation }) => {
 
     const renderItem = ({ item }) => {
         let borderColor, blinkColor;
-
+        let check = item.BookStatus
+        console.log('check', check)
         // Set border and blink color based on the BookStatus
         switch (item.BookStatus) {
             case 'Assigned':
@@ -626,16 +717,17 @@ const Home = ({ navigation }) => {
             );
         }
 
+        // console.log('dassssss', Dashboard.BookDetails)
+
         // Render the card for each item when there is data
         return (
             <View style={[styles.card, { borderLeftColor: borderColor }]}>
-                <View>
+                <View style={{ flex: 1 }}>
                     <Text style={styles.cardTitle}>{item.TourName}</Text>
                     <Text style={styles.cardSubtitle}>Customer: {item.CustumerName}</Text>
                     <Text style={styles.cardSubtitle}>Pickup: {item.PickupPoints}</Text>
                     <Text style={styles.cardSubtitle}>MobileNo: {item.MobileNo}</Text>
 
-                    {/* Conditionally render the "Start" button at the bottom if the status is 'Assigned' */}
                     {item.BookStatus === 'Assigned' && type !== 'A' && (
                         <TouchableOpacity
                             style={{
@@ -664,20 +756,16 @@ const Home = ({ navigation }) => {
                         </TouchableOpacity>
                     )}
 
-                    {type === 'A' && (
+                    {type === 'A' && check !== 'Confirmed' && check !== 'Assigned' && (
                         <TouchableOpacity
                             style={{
                                 ...styles.stopButton,
                                 backgroundColor: todayDate === selectedDate ? 'green' : 'grey',
                             }}
                             onPress={() => {
-                                setconfirmModal(true)
-                                setConfirmItem(item)
-                            }
-
-
-
-                            }
+                                setconfirmModal(true);
+                                setConfirmItem(item);
+                            }}
                         >
                             <Text style={styles.startButtonText}>Confirm</Text>
                         </TouchableOpacity>
@@ -685,7 +773,9 @@ const Home = ({ navigation }) => {
                 </View>
 
                 <View style={styles.statusContainer}>
-                    <Text style={styles.cardStatus}>{item.BookStatus}</Text>
+                    <Text style={styles.cardStatus} numberOfLines={1} ellipsizeMode="tail">
+                        {item.BookStatus}
+                    </Text>
                     <Animated.View
                         style={[
                             styles.blinkingCircle,
@@ -694,11 +784,12 @@ const Home = ({ navigation }) => {
                     />
                 </View>
             </View>
+
         );
     };
 
 
-    const GetAdminData = token => {
+    const GetAdminData = async (token) => {
         setLoader(true);
         try {
             const myHeaders = new Headers();
@@ -710,12 +801,16 @@ const Home = ({ navigation }) => {
                 redirect: 'follow',
             };
 
-            fetch(`${BASE_URL}api/userdashbaord`, requestOptions)
+            await fetch(`${BASE_URL}api/userdashbaord`, requestOptions)
                 .then(response => response.json())
                 .then(result => {
-                    // setLoader(false)
-                    console.log('GetAdminData', result);
-                    setAdminData(result);
+                    setLoader(false)
+
+                    if (result?.status === "success") {
+
+                        console.log('GetAdminData', result);
+                        setAdminData(result);
+                    }
 
                 })
                 .catch(error => console.error(error));
@@ -726,7 +821,6 @@ const Home = ({ navigation }) => {
 
 
 
-    console.log('confirmItem', adults)
 
     return (
         <Fragment>
@@ -869,6 +963,14 @@ const Home = ({ navigation }) => {
                                                 <FlatList
                                                     data={Data}
                                                     horizontal
+                                                    ListEmptyComponent={
+                                                        <Text
+                                                            style={{
+                                                                fontSize: RFValue(16),
+                                                            }}>
+                                                            No more data available
+                                                        </Text>
+                                                    }
                                                     renderItem={({ item }) => (
                                                         <View>
                                                             {/* Container to add separation lines above and below */}
@@ -936,6 +1038,9 @@ const Home = ({ navigation }) => {
                                     horizontal={true}
                                     contentContainerStyle={styles.calendarList}
                                     showsHorizontalScrollIndicator={false}
+                                    ListEmptyComponent={
+                                        <Text style={styles.noHistoryText}>No history available for the selected date range.</Text>
+                                    }
                                 />
                                 {/* </View> */}
                                 <View
@@ -946,6 +1051,16 @@ const Home = ({ navigation }) => {
                                     }}>
                                     <FlatList
                                         data={Dashboard.BookDetails} // Use the real data from Dashboard
+                                        ListEmptyComponent={
+                                            <Text style={{
+                                                fontSize: RFValue(16),
+                                                marginTop: 20,
+                                                marginBottom: 20,
+                                                textAlign: 'center',
+                                                color: '#888888',
+                                            }
+                                            }>No Data Available</Text>
+                                        }
                                         renderItem={renderItem}
                                         refreshControl={
                                             <RefreshControl
@@ -960,7 +1075,7 @@ const Home = ({ navigation }) => {
                                         ListFooterComponent={
                                             <View
                                                 style={{
-                                                    height: type === 'A' ? HEIGHT * 0.18 : 25,
+                                                    height: type === 'A' ? HEIGHT * 0.30 : 25,
                                                     width: '100%',
                                                     backgroundColor: '#f2f2f2',
                                                     justifyContent: 'center',
@@ -982,6 +1097,13 @@ const Home = ({ navigation }) => {
                 transparent={false}
                 visible={showModal}
                 onRequestClose={() => setShowModal(false)}>
+
+                <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setShowModal(false)}
+                >
+                    <Text style={styles.closeButtonText}>X</Text>
+                </TouchableOpacity>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>OTP Verification</Text>
@@ -1043,6 +1165,13 @@ const Home = ({ navigation }) => {
                 visible={confirmModal}
                 onRequestClose={() => setconfirmModal(false)}
             >
+
+                <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setconfirmModal(false)}
+                >
+                    <Text style={styles.closeButtonText}>X</Text>
+                </TouchableOpacity>
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>
@@ -1050,15 +1179,21 @@ const Home = ({ navigation }) => {
                         </Text>
 
                         {/* Book Date */}
-                        <Text style={styles.label}>Booking Date:{moment(fromDate).format('YYYY-MM-DD HH:mm')}</Text>
-                        {showDatePicker && (
-                            <DateTimePicker
-                                value={fromDate}
-                                mode="date"
-                                display="default"
-                                onChange={handleFromDateChange}
-                            />
-                        )}
+                        <TouchableOpacity
+                            onPress={() => {
+                                setShowDatePicker(true)
+                            }}
+                        >
+                            <Text style={styles.label}>Booking Date:{moment(fromDate).format('YYYY-MM-DD HH:mm')}</Text>
+                            {showDatePicker && (
+                                <DateTimePicker
+                                    value={fromDate}
+                                    mode="date"
+                                    display="default"
+                                    onChange={handleFromDateChange}
+                                />
+                            )}
+                        </TouchableOpacity>
 
                         {/* Pickup Points */}
                         <Text style={styles.label}>Pickup Points</Text>
@@ -1108,30 +1243,25 @@ const Home = ({ navigation }) => {
                         <View style={styles.row}>
                             <View style={styles.column}>
                                 <Text style={styles.label}>Adults</Text>
-                                <Text
+                                <TextInput
                                     style={{ ...styles.halfInput, alignItems: 'center', justifyContent: 'center', paddingLeft: 60, padding: 10, color: BLACK }}
-                                // placeholder="Adults"
-                                // value={adults}
-                                // onChangeText={setAdults}
-                                // keyboardType="numeric"
-                                >
-                                    {adults}
+                                    placeholder="Adults"
+                                    value={adults.toString()} // Convert to string if it's a number
+                                    onChangeText={setAdults}
+                                    keyboardType="numeric"
+                                />
 
-                                </Text>
 
                             </View>
                             <View style={styles.column}>
                                 <Text style={styles.label}>Child</Text>
-                                <Text
+                                <TextInput
                                     style={{ ...styles.halfInput, alignItems: 'center', justifyContent: 'center', paddingLeft: 60, padding: 10, color: BLACK }}
-                                // placeholder="Adults"
-                                // value={adults}
-                                // onChangeText={setAdults}
-                                // keyboardType="numeric"
-                                >
-                                    {child}
-
-                                </Text>
+                                    placeholder="Adults"
+                                    value={child.toString()} // Convert to string if it's a number
+                                    onChangeText={setChild}
+                                    keyboardType="numeric"
+                                />
                             </View>
                         </View>
 
@@ -1164,24 +1294,41 @@ const Home = ({ navigation }) => {
 
                         </View>
 
-                        <Text style={styles.label}>Select Tour</Text>
-                        <DropDownPicker
-                            // searchable={true}
-                            open={TourOpen}
-                            value={Tour}
-                            items={Tours}
-                            setOpen={setTourOpen}
-                            setValue={setTour}
-                            style={styles.input}
-                            dropDownStyle={{ backgroundColor: '#fafafa' }}
-                            // onChangeItem={item => setTourSl(item.value)}
-                            onSelectItem={(item) => {
-                                setTourSl(item.value)
-                            }}
-                        />
+                        {confirmItem.type === "Tour" ? (<>
+                            {/* <Text style={styles.label}>Select Tour</Text> */}
+                            <DropDownPicker
+                                // searchable={true}
+                                open={TourOpen}
+                                placeholder='Select Tour'
+                                value={Tour}
+                                items={Tours}
+                                setOpen={setTourOpen}
+                                setValue={setTour}
+                                style={styles.input}
+                                dropDownStyle={{ backgroundColor: '#fafafa' }}
+                                // onChangeItem={item => setTourSl(item.value)}
+                                onSelectItem={(item) => {
+                                    setTourSl(item.value)
 
-                        {/* Verify Button */}
-                        <TouchableOpacity style={styles.verifyButton} onPress={confirm}>
+                                }}
+
+                            /></>) : (<>
+
+                                {/* <Text style={styles.label}>Select Vehicle Group</Text> */}
+                                <DropDownPicker
+                                    open={vehicleGroupOpen}
+                                    placeholder='Select Vehicle Group'
+                                    value={vehicleGroup}
+                                    items={VehicleGroups}
+                                    setOpen={setVehicleGroupOpen}
+                                    setValue={setVehicleGroup}
+                                    style={styles.input}
+                                /></>)}
+
+                        <TouchableOpacity style={styles.verifyButton} onPress={() => {
+                            confirm()
+
+                        }}>
                             <Text style={styles.verifyButtonText}>Verify</Text>
                         </TouchableOpacity>
                     </View>
@@ -1314,13 +1461,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: 15,
-        paddingHorizontal: 20,
+        // paddingVertical: 15,
+        // paddingHorizontal: 20,
+        padding: 15,
         marginVertical: 10,
         borderRadius: 10,
         borderLeftWidth: 5,
         backgroundColor: WHITE,
         elevation: 5,
+        width: '99%'
     },
     cardTitle: {
         fontSize: RFValue(16),
@@ -1329,13 +1478,15 @@ const styles = StyleSheet.create({
     },
     statusContainer: {
         flexDirection: 'row',
+        width: '25%',
         alignItems: 'center',
+
     },
     cardStatus: {
         fontSize: RFValue(12),
         color: BLACK,
         fontFamily: 'Poppins-Medium',
-        marginRight: 10,
+        marginRight: 5,
     },
     blinkingCircle: {
         width: 10,
@@ -1374,6 +1525,23 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: 'rgba(0,0,0,0.5)',
         // padding: 20,
+    },
+    closeButton: {
+        position: 'absolute',
+        top: 25,
+        right: 20,
+        zIndex: 1,
+        height: 50,
+        width: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 10,
+        backgroundColor: 'white',
+        elevation: 10
+    },
+    closeButtonText: {
+        fontSize: 18,
+        color: 'black',
     },
     modalContent: {
         width: WIDTH * 0.8,

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { RFValue } from 'react-native-responsive-fontsize';
 import DropDownPicker from 'react-native-dropdown-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import { BASE_URL } from '../../constants/url';
 import { getObjByKey } from '../../utils/Storage';
+import { HEIGHT } from '../../constants/config';
 
 const Add = ({ addModal, setAddModal }) => {
     const [bookingTypeOpen, setBookingTypeOpen] = useState(false);
@@ -54,7 +55,7 @@ const Add = ({ addModal, setAddModal }) => {
 
         try {
             const loginResponse = await getObjByKey('loginResponse');
-            console.log('tokennnnnn', loginResponse.token);
+            // console.log('tokennnnnn', loginResponse.token);
             setToken(loginResponse.token)
             fetchTours(loginResponse.token);
             fetchVehicleList(loginResponse.token);
@@ -92,7 +93,7 @@ const Add = ({ addModal, setAddModal }) => {
 
     // Fetch Vehicle Groups
     const fetchVehicleList = async (token) => {
-        console.log('calling');
+        // console.log('calling');
         try {
             const response = await fetch(`${BASE_URL}api/vehiclegrouplist`, {
                 method: "GET",
@@ -102,10 +103,10 @@ const Add = ({ addModal, setAddModal }) => {
             });
 
             const text = await response.text(); // Get the raw text response
-            console.log('Raw response:', text); // Log the raw response
+            // console.log('Raw response:', text); // Log the raw response
 
             const result = JSON.parse(text); // Parse the text as JSON
-            console.log('Parsed result:', result); // Log the parsed result
+            // console.log('Parsed result:', result); // Log the parsed result
 
             if (result.status === "success") {
                 const fetchedVehicles = result.data_value.map(vehicle => ({
@@ -159,7 +160,7 @@ const Add = ({ addModal, setAddModal }) => {
         try {
             const response = await fetch(`${BASE_URL}api/tourbooking`, requestOptions);
             const result = await response.json();
-            console.log('result tour', result)
+            // console.log('result tour', result)
 
             if (result.status === "success") {
                 Alert.alert("Success", "Tour booked successfully!");
@@ -194,7 +195,7 @@ const Add = ({ addModal, setAddModal }) => {
         try {
             const response = await fetch(`${BASE_URL}api/TravelBooking`, requestOptions);
             const result = await response.json();
-            console.log('result travel', result)
+            // console.log('result travel', result)
 
             if (result.status === "success") {
                 Alert.alert("Success", "Travel booked successfully!");
@@ -208,14 +209,16 @@ const Add = ({ addModal, setAddModal }) => {
         }
     };
 
-    useEffect(() => {
-        // Fetch Tours
+    // useEffect(() => {
+    //     // Fetch Tours
+    //     if (token) {
+    //         fetchTours(token);
+    //         fetchVehicleList(token);
+    //     }
 
 
 
-        fetchTours();
-        fetchVehicleList();
-    }, []);
+    // }, [token]);
 
 
 
@@ -227,121 +230,138 @@ const Add = ({ addModal, setAddModal }) => {
             onRequestClose={() => setAddModal(false)}
         >
             <View style={styles.modalContainer}>
+                <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setAddModal(false)}
+                >
+                    <Text style={styles.closeButtonText}>X</Text>
+                </TouchableOpacity>
+
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Add Booking Details</Text>
 
-                    {/* Booking Type Selection */}
-                    <Text style={styles.label}>Select Booking Type</Text>
-                    <DropDownPicker
-                        open={bookingTypeOpen}
-                        value={bookingType}
-                        items={[
-                            { label: 'Tour Booking', value: 'tour' },
-                            { label: 'Travel Booking', value: 'travel' },
-                        ]}
-                        setOpen={setBookingTypeOpen}
-                        setValue={setBookingType}
-                        style={styles.input}
-                    />
+                    <ScrollView
+                        contentContainerStyle={{ flexGrow: 1 }}
+                        keyboardShouldPersistTaps="handled"
+                        scrollEnabled={true}
+                    >
+                        <Text style={styles.modalTitle}>Add Booking Details</Text>
 
-                    {/* Common Input Fields */}
-                    <Text style={styles.label}>Pickup Points</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Enter Pickup Points"
-                        value={pickupPoints}
-                        onChangeText={setPickupPoints}
-                    />
-
-                    <Text style={styles.label}>Customer Name</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Customer Name"
-                        value={customerName}
-                        onChangeText={setCustomerName}
-                    />
-
-                    <Text style={styles.label}>Mobile No</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Mobile No"
-                        value={mobileNo}
-                        onChangeText={setMobileNo}
-                        keyboardType="numeric"
-                    />
-
-                    <Text style={styles.label}>Booking Date & Time</Text>
-                    <TouchableOpacity onPress={handleShowDatePicker} style={styles.input}>
-                        <Text style={{ fontSize: RFValue(16), color: '#666', paddingTop: 10, paddingBottom: 10 }}>
-                            {moment(fromDate).format('YYYY-MM-DD HH:mm')}
-                        </Text>
-                    </TouchableOpacity>
-                    {showDatePicker && (
-                        <DateTimePicker
-                            value={fromDate}
-                            mode="date"
-                            display="default"
-                            onChange={handleFromDateChange}
+                        {/* Booking Type Selection */}
+                        <Text style={styles.label}>Select Booking Type</Text>
+                        <DropDownPicker
+                            open={bookingTypeOpen}
+                            placeholder='Select booking type'
+                            value={bookingType}
+                            items={[
+                                { label: 'Tour Booking', value: 'tour' },
+                                { label: 'Travel Booking', value: 'travel' },
+                            ]}
+                            setOpen={setBookingTypeOpen}
+                            setValue={setBookingType}
+                            style={styles.input}
                         />
-                    )}
 
-                    {/* Conditional Rendering of Inputs Based on Booking Type */}
-                    {bookingType === 'tour' && (
-                        <>
-                            <View style={styles.row}>
-                                <View style={styles.column}>
-                                    <Text style={styles.label}>No. of Adults</Text>
-                                    <TextInput
-                                        style={styles.halfInput}
-                                        value={adults}
-                                        onChangeText={setAdults}
-                                        keyboardType="numeric"
-                                        placeholder="Adults"
-                                    />
-                                </View>
-                                <View style={styles.column}>
-                                    <Text style={styles.label}>No. of Child</Text>
-                                    <TextInput
-                                        style={styles.halfInput}
-                                        value={children}
-                                        onChangeText={setChildren}
-                                        keyboardType="numeric"
-                                        placeholder="Children"
-                                    />
-                                </View>
-                            </View>
-                            <Text style={styles.label}>Select Tour</Text>
-                            <DropDownPicker
-                                open={tourOpen}
-                                value={tour}
-                                items={Tours} // Use fetched Tours state
-                                setOpen={setTourOpen}
-                                setValue={setTour}
-                                style={styles.input}
+                        {/* Common Input Fields */}
+                        <Text style={styles.label}>Pickup Points</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter Pickup Points"
+                            value={pickupPoints}
+                            onChangeText={setPickupPoints}
+                        />
+
+                        <Text style={styles.label}>Customer Name</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Customer Name"
+                            value={customerName}
+                            onChangeText={setCustomerName}
+                        />
+
+                        <Text style={styles.label}>Mobile No</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Mobile No"
+                            value={mobileNo}
+                            onChangeText={setMobileNo}
+                            keyboardType="numeric"
+                        />
+
+                        <Text style={styles.label}>Booking Date & Time</Text>
+                        <TouchableOpacity onPress={handleShowDatePicker} style={styles.input}>
+                            <Text style={{ fontSize: RFValue(16), color: '#666', paddingTop: 10, paddingBottom: 10 }}>
+                                {moment(fromDate).format('YYYY-MM-DD HH:mm')}
+                            </Text>
+                        </TouchableOpacity>
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={fromDate}
+                                mode="date"
+                                display="default"
+                                onChange={handleFromDateChange}
                             />
-                            <TouchableOpacity style={styles.verifyButton} onPress={handleTourBooking}>
-                                <Text style={styles.verifyButtonText}>Book Tour</Text>
-                            </TouchableOpacity>
-                        </>
-                    )}
+                        )}
 
-                    {bookingType === 'travel' && (
-                        <>
+                        {/* Conditional Rendering of Inputs Based on Booking Type */}
+                        {bookingType === 'tour' && (
+                            <>
+                                <View style={styles.row}>
+                                    <View style={styles.column}>
+                                        <Text style={styles.label}>No. of Adults</Text>
+                                        <TextInput
+                                            style={styles.halfInput}
+                                            value={adults}
+                                            onChangeText={setAdults}
+                                            keyboardType="numeric"
+                                            placeholder="Adults"
+                                        />
+                                    </View>
+                                    <View style={styles.column}>
+                                        <Text style={styles.label}>No. of Child</Text>
+                                        <TextInput
+                                            style={styles.halfInput}
+                                            value={children}
+                                            onChangeText={setChildren}
+                                            keyboardType="numeric"
+                                            placeholder="Children"
+                                        />
+                                    </View>
+                                </View>
+                                <Text style={styles.label}>Select Tour</Text>
+                                <DropDownPicker
+                                    open={tourOpen}
+                                    placeholder='select tour'
+                                    value={tour}
+                                    items={Tours} // Use fetched Tours state
+                                    setOpen={setTourOpen}
+                                    setValue={setTour}
+                                    style={styles.input}
+                                />
+                                <TouchableOpacity style={styles.verifyButton} onPress={handleTourBooking}>
+                                    <Text style={styles.verifyButtonText}>Book Tour</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
 
-                            <Text style={styles.label}>Select Vehicle Group</Text>
-                            <DropDownPicker
-                                open={vehicleGroupOpen}
-                                value={vehicleGroup}
-                                items={VehicleGroups} // Use fetched Vehicle Groups state
-                                setOpen={setVehicleGroupOpen}
-                                setValue={setVehicleGroup}
-                                style={styles.input}
-                            />
-                            <TouchableOpacity style={styles.verifyButton} onPress={handleTravelBooking}>
-                                <Text style={styles.verifyButtonText}>Book Travel</Text>
-                            </TouchableOpacity>
-                        </>
-                    )}
+                        {bookingType === 'travel' && (
+                            <>
+
+                                <Text style={styles.label}>Select Vehicle Group</Text>
+                                <DropDownPicker
+                                    open={vehicleGroupOpen}
+                                    placeholder='Select a vehicle'
+                                    value={vehicleGroup}
+                                    items={VehicleGroups} // Use fetched Vehicle Groups state
+                                    setOpen={setVehicleGroupOpen}
+                                    setValue={setVehicleGroup}
+                                    style={styles.input}
+                                />
+                                <TouchableOpacity style={styles.verifyButton} onPress={handleTravelBooking}>
+                                    <Text style={styles.verifyButtonText}>Book Travel</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </ScrollView>
                 </View>
             </View>
         </Modal>
@@ -357,6 +377,7 @@ const styles = StyleSheet.create({
     },
     modalContent: {
         width: '85%',
+        height: HEIGHT * 0.7,
         backgroundColor: 'white',
         borderRadius: 10,
         padding: 20,
@@ -410,6 +431,23 @@ const styles = StyleSheet.create({
     verifyButtonText: {
         color: 'white',
         fontSize: 16,
+    },
+    closeButton: {
+        position: 'absolute',
+        top: 25,
+        right: 20,
+        zIndex: 1,
+        height: 50,
+        width: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 10,
+        backgroundColor: 'white',
+        elevation: 10
+    },
+    closeButtonText: {
+        fontSize: 18,
+        color: 'black',
     },
 });
 

@@ -300,7 +300,7 @@ const styles = {
     padding: 25,
     alignItems: 'center',
     alignSelf: 'center',
-    height: HEIGHT * 0.29,
+    height: HEIGHT * 0.35,
     borderRadius: 10,
     elevation: 10,
     width: WIDTH * 0.97,
