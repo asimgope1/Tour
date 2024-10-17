@@ -130,8 +130,8 @@ const Add = ({ addModal, setAddModal }) => {
         setPickupPoints('');
         setTour(null);
         setVehicleGroup(null);
-        setAdults('3');
-        setChildren('2');
+        setAdults('0');
+        setChildren('0');
         // close the modal
         setAddModal(false);
 
@@ -267,7 +267,7 @@ const Add = ({ addModal, setAddModal }) => {
                             style={styles.input}
                             placeholder="Enter Pickup Points"
                             value={pickupPoints}
-                            onChangeText={setPickupPoints}
+                            onChangeText={(txt) => setPickupPoints(txt)}
                         />
 
                         <Text style={styles.label}>Customer Name</Text>
@@ -275,7 +275,7 @@ const Add = ({ addModal, setAddModal }) => {
                             style={styles.input}
                             placeholder="Customer Name"
                             value={customerName}
-                            onChangeText={setCustomerName}
+                            onChangeText={(txt) => setCustomerName(txt)}
                         />
 
                         <Text style={styles.label}>Mobile No</Text>
@@ -283,8 +283,9 @@ const Add = ({ addModal, setAddModal }) => {
                             style={styles.input}
                             placeholder="Mobile No"
                             value={mobileNo}
-                            onChangeText={setMobileNo}
+                            onChangeText={(txt) => setMobileNo(txt)}
                             keyboardType="numeric"
+                            maxLength={10}
                         />
 
                         <Text style={styles.label}>Booking Date & Time</Text>
@@ -311,7 +312,7 @@ const Add = ({ addModal, setAddModal }) => {
                                         <TextInput
                                             style={styles.halfInput}
                                             value={adults}
-                                            onChangeText={setAdults}
+                                            onChangeText={(txt) => setAdults(txt)}
                                             keyboardType="numeric"
                                             placeholder="Adults"
                                         />
@@ -321,7 +322,7 @@ const Add = ({ addModal, setAddModal }) => {
                                         <TextInput
                                             style={styles.halfInput}
                                             value={children}
-                                            onChangeText={setChildren}
+                                            onChangeText={(txt) => setChildren(txt)}
                                             keyboardType="numeric"
                                             placeholder="Children"
                                         />

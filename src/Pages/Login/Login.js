@@ -9,6 +9,7 @@ import { RING, NEWLOGO, LOGO } from '../../constants/imagepath';
 import { HEIGHT, WIDTH } from '../../constants/config';
 import { BASE_URL } from '../../constants/url';
 import messaging from '@react-native-firebase/messaging';
+import { Loader } from '../../components/Loader';
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -17,6 +18,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [Fcm, SetFcm] = useState('')
+  const [loader, setLoader] = useState(false);
 
   // Animated values for Chakra and Name images
   const chakraAnim = useRef(new Animated.Value(-HEIGHT * 0.9)).current;
@@ -25,7 +27,7 @@ const Login = () => {
   useEffect(() => {
     Animated.parallel([
       Animated.timing(chakraAnim, {
-        toValue: -HEIGHT * 0.07,
+        toValue: -HEIGHT * 0.1,
         duration: 1000,
         useNativeDriver: true,
       }),
@@ -43,7 +45,9 @@ const Login = () => {
   }, []);
 
   const getDeviceToken = async () => {
+
     try {
+
       let token = await getObjByKey('deviceToken');
       console.log('stored token --> ', token);
       SetFcm(token)
@@ -59,6 +63,7 @@ const Login = () => {
   };
 
   const GetUserDetails = (token) => {
+    setLoader(true)
     try {
       const myHeaders = new Headers();
       myHeaders.append("Authorization", `Bearer ${token}`);
@@ -72,6 +77,7 @@ const Login = () => {
       fetch(`${BASE_URL}api/userdetails`, requestOptions)
         .then((response) => response.json())
         .then((result) => {
+          setLoader(false)
           if (result.Code === "200") {
 
             console.log("GetUserDetails", result)
@@ -121,6 +127,7 @@ const Login = () => {
 
 
   const FCMToken = (token) => {
+
     if (token != '') {
       console.log('FCMToken update ')
       try {
@@ -159,6 +166,8 @@ const Login = () => {
 
   // Function to handle login
   const handleLogin = () => {
+    setLoader(true)
+
     const myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/json");
 
@@ -177,6 +186,7 @@ const Login = () => {
 
     fetch(`${BASE_URL}api/login`, requestOptions)
       .then((response) => {
+        setLoader(false)
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
@@ -225,7 +235,7 @@ const Login = () => {
                     resizeMode={'contain'}
                     style={{
                       position: 'absolute',
-                      width: WIDTH * 0.68,
+                      width: WIDTH * 0.72,
                       height: HEIGHT * 0.62,
                       alignSelf: 'center',
                       transform: [{ translateY: chakraAnim }],
@@ -277,6 +287,7 @@ const Login = () => {
           </KeyboardAvoidingView>
         </ImageBackground>
       </SafeAreaView>
+      <Loader visible={loader} />
     </Fragment>
   );
 };

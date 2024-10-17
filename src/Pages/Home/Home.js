@@ -69,8 +69,8 @@ const Home = ({ navigation }) => {
     const [mobileNo, setMobileNo] = useState('');
     const [tourSl, setTourSl] = useState('1');
     const [status, setStatus] = useState('Confirmed');
-    const [amount, setAmount] = useState('3500');
-    const [paid, setPaid] = useState('1000');
+    const [amount, setAmount] = useState('0');
+    const [paid, setPaid] = useState('0');
     const [Sl, setSl] = useState('');
     const [Tour, setTour] = useState(null);
     const [TourOpen, setTourOpen] = useState(false);
@@ -82,7 +82,9 @@ const Home = ({ navigation }) => {
     const [VehicleGroups, setVehicleGroups] = useState([]);
 
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
     const [fromDate, setFromDate] = useState(new Date()); // Initialize as Date object
+    const [time, setTime] = useState(new Date());
 
     const [addModal, setAddModal] = useState(false); // State to control modal visibility
 
@@ -129,7 +131,7 @@ const Home = ({ navigation }) => {
     useEffect(() => {
         if (confirmItem) {
             // Set common fields
-            setBookDate(moment(fromDate).format('YYYY/MM/DD HH:mm'));
+            setBookDate(moment(fromDate).format('YYYY/MM/DD' + ' ' + moment(time).format('HH:mm:ss')));
             setAdults(confirmItem.Adults || 0); // Default to 0 if not provided
             setChild(confirmItem.Child || 0);
             setPickupPoints(confirmItem.PickupPoints || '');
@@ -137,16 +139,35 @@ const Home = ({ navigation }) => {
             setMobileNo(confirmItem.MobileNo || '');
             setSl(confirmItem.BookSl || '');
             setStatus('Confirmed');
-            setAmount(confirmItem.amount || '3500'); // Default to '3500' if not provided
-            setPaid(confirmItem.paid || '1000'); // Default to '1000' if not provided
+            setAmount(confirmItem.amount || '0'); // Default to '3500' if not provided
+            setPaid(confirmItem.paid || '0'); // Default to '1000' if not provided
 
             // Conditionally set additional fields based on type
             if (confirmItem.type === "Travels") {
-                setVehicleGroupSl(confirmItem.VehicleGroupSl || '');
-            } else if (confirmItem.type === "Tour") {
-                setTourSl(confirmItem.TourSl || '');
-            }
+                console.log('confirmItem.Travels:', confirmItem.TourName);
 
+                // Check if the TourName exists in the VehicleGroups dropdown
+                const matchingVehicleGroup = VehicleGroups.find(
+                    (item) => item.label === confirmItem.TourName
+                );
+
+                if (matchingVehicleGroup) {
+                    setVehicleGroup(matchingVehicleGroup.value); // Set the value if it matches
+                } else {
+                    setVehicleGroup(''); // If no match is found, set an empty value
+                }
+            } else if (confirmItem.type === "Tour") {
+                // Check if the TourSl exists in the Tours dropdown
+                const matchingTour = Tours.find((item) => item.value === confirmItem.TourSl);
+
+                if (matchingTour) {
+                    setTour(matchingTour.value); // Set the value if it matches
+                    setTourSl(matchingTour.value);
+                } else {
+                    setTour(''); // If no match is found, set an empty value
+                    setTourSl('');
+                }
+            }
             // Fetch additional data
             if (token) {
 
@@ -333,8 +354,8 @@ const Home = ({ navigation }) => {
                         }
                     })
                     .catch(error => {
-                        // clearAll();
-                        // dispatch(checkuserToken(false));
+                        clearAll();
+                        dispatch(checkuserToken(false));
                         console.error(error)
                     });
             }
@@ -646,6 +667,23 @@ const Home = ({ navigation }) => {
                     alert(result.msg)
                     setconfirmModal(false);
                     GetDashBoard(token);
+                    // clear all
+                    setTour(null);
+                    setVehicleGroup(null);
+                    setTourSl(null);
+                    setVehicleGroupSl(null);
+                    setPickupPoints('');
+                    setCustomerName('');
+                    setMobileNo('');
+                    setAmount('0');
+                    setPaid('0');
+                    setSl('');
+                    setStatus('Confirmed');
+                    setFromDate(new Date());
+                    setTime(new Date());
+                    setAdults('');
+                    setChild('');
+
 
                 })
                 .catch((error) => console.error(error));
@@ -661,11 +699,25 @@ const Home = ({ navigation }) => {
         // If the event type is set to 'dismissed', close the picker
         if (event.type === 'dismissed') {
             setShowDatePicker(false);
+            setShowTimePicker(true)
             return;
         }
         const currentDate = selectedDate || fromDate;
         setShowDatePicker(false);
+        setShowTimePicker(true)
         setFromDate(currentDate);
+    };
+    const handleTimeChange = (event, selectedTime) => {
+        // If the event type is set to 'dismissed', close the picker
+        if (event.type === 'dismissed') {
+            setShowTimePicker(false);
+            return;
+        }
+
+
+
+        setShowTimePicker(false);
+        setTime(selectedTime);
     };
 
     const Data = [
@@ -717,7 +769,7 @@ const Home = ({ navigation }) => {
             );
         }
 
-        // console.log('dassssss', Dashboard.BookDetails)
+        console.log('time', time)
 
         // Render the card for each item when there is data
         return (
@@ -820,7 +872,7 @@ const Home = ({ navigation }) => {
     };
 
 
-
+    console.log("confirm", confirmItem)
 
     return (
         <Fragment>
@@ -1184,13 +1236,23 @@ const Home = ({ navigation }) => {
                                 setShowDatePicker(true)
                             }}
                         >
-                            <Text style={styles.label}>Booking Date:{moment(fromDate).format('YYYY-MM-DD HH:mm')}</Text>
+                            <Text style={styles.label}>Booking Date:{moment(fromDate).format('YYYY-MM-DD') + ' ' + moment(time).format('HH:mm:ss')}</Text>
                             {showDatePicker && (
                                 <DateTimePicker
                                     value={fromDate}
                                     mode="date"
                                     display="default"
                                     onChange={handleFromDateChange}
+                                />
+                            )}
+                            {showTimePicker && (
+                                <DateTimePicker
+                                    value={time}
+                                    mode="time"
+                                    display="default"
+                                    onChange={
+                                        handleTimeChange
+                                    }
                                 />
                             )}
                         </TouchableOpacity>
@@ -1213,18 +1275,18 @@ const Home = ({ navigation }) => {
                             placeholder="Pickup Points"
                             placeholderTextColor={'grey'}
                             value={pickupPoints}
-                            onChangeText={setPickupPoints}
+                            onChangeText={(txt) => setPickupPoints(txt)}
                         />
 
                         {/* Customer Name and Mobile No */}
                         <View style={styles.row}>
                             <View style={styles.column}>
-                                <Text style={styles.label}>Customer Name</Text>
+                                <Text style={styles.label}>Customer</Text>
                                 <TextInput
                                     style={styles.halfInput}
                                     placeholder="Customer Name"
                                     value={customerName}
-                                    onChangeText={setCustomerName}
+                                    onChangeText={(txt) => setCustomerName(txt)}
                                 />
                             </View>
                             <View style={styles.column}>
@@ -1233,21 +1295,22 @@ const Home = ({ navigation }) => {
                                     style={styles.halfInput}
                                     placeholder="Mobile No"
                                     value={mobileNo}
-                                    onChangeText={setMobileNo}
+                                    onChangeText={(txt) => setMobileNo(txt)}
                                     keyboardType="numeric"
+                                    maxLength={10}
                                 />
                             </View>
                         </View>
 
                         {/* Adults and Child */}
-                        <View style={styles.row}>
+                        {confirmItem.type === "Tour" ? <View style={styles.row}>
                             <View style={styles.column}>
                                 <Text style={styles.label}>Adults</Text>
                                 <TextInput
                                     style={{ ...styles.halfInput, alignItems: 'center', justifyContent: 'center', paddingLeft: 60, padding: 10, color: BLACK }}
                                     placeholder="Adults"
                                     value={adults.toString()} // Convert to string if it's a number
-                                    onChangeText={setAdults}
+                                    onChangeText={(txt) => setAdults(txt)}
                                     keyboardType="numeric"
                                 />
 
@@ -1259,11 +1322,11 @@ const Home = ({ navigation }) => {
                                     style={{ ...styles.halfInput, alignItems: 'center', justifyContent: 'center', paddingLeft: 60, padding: 10, color: BLACK }}
                                     placeholder="Adults"
                                     value={child.toString()} // Convert to string if it's a number
-                                    onChangeText={setChild}
+                                    onChangeText={(txt) => { setChild(txt) }}
                                     keyboardType="numeric"
                                 />
                             </View>
-                        </View>
+                        </View> : <></>}
 
                         {/* TourSl Dropdown */}
 
@@ -1277,7 +1340,7 @@ const Home = ({ navigation }) => {
                                     style={styles.halfInput}
                                     placeholder="Amount"
                                     value={amount}
-                                    onChangeText={setChild}
+                                    onChangeText={(txt) => setAmount(txt)}
                                     keyboardType="numeric"
                                 />
                             </View>
@@ -1287,7 +1350,7 @@ const Home = ({ navigation }) => {
                                     style={styles.halfInput}
                                     placeholder="Paid Amount"
                                     value={paid}
-                                    onChangeText={setPaid}
+                                    onChangeText={(txt) => setPaid(txt)}
                                     keyboardType="numeric"
                                 />
                             </View>
@@ -1329,7 +1392,7 @@ const Home = ({ navigation }) => {
                             confirm()
 
                         }}>
-                            <Text style={styles.verifyButtonText}>Verify</Text>
+                            <Text style={styles.verifyButtonText}>Submit</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -1406,11 +1469,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     bannerContainer1: {
-        marginTop: 70,
+        marginTop: HEIGHT * 0.07,
         alignItems: 'center',
         justifyContent: 'center',
         height: HEIGHT * 0.1,
-        marginBottom: 80,
+        marginBottom: HEIGHT * 0.09,
     },
     bannerCard: {
         width: WIDTH * 0.9,
